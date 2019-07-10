@@ -2,7 +2,8 @@
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
-
+using System.Linq;
+using System.Collections.Generic;
 
 namespace Spotlight_Desktop
 {
@@ -10,7 +11,7 @@ namespace Spotlight_Desktop
     {
         private static string _currSpotlightPath;
 
-        private const bool RunOnce = false;
+        private static bool _RunOnce = false;
 
         const int SetWallpaper = 20;
         const int UpdateIniFile = 0x01;
@@ -33,25 +34,32 @@ namespace Spotlight_Desktop
             ChangeWallpaper(_currSpotlightPath);
         }
 
-
         // Show output only if in a command prompt
         [DllImport("kernel32.dll")]
         private static extern void AttachConsole(int dwProcessId);
 
+        private static void ParseArgs(List<string> args)
+        {
+            if (args == null || args.Count == 0)
+                return;
 
-        private static void Main()
+            _RunOnce = args.Count(arg => arg.ToLower().EndsWith("runonce")) > 0;
+
+        }
+
+        private static void Main(string[] args)
         {
             AttachConsole(-1);
-
+            ParseArgs(args.ToList());
 
             int count = 0;
             while (true)
             {
                 // Run every minute
-                string lastestCurrentImage = FindImage.FindCurrentImage();
-                if (_currSpotlightPath != lastestCurrentImage)
+                string latestCurrentImage = FindImage.FindCurrentImage();
+                if (_currSpotlightPath != latestCurrentImage)
                 {
-                    _currSpotlightPath = lastestCurrentImage;
+                    _currSpotlightPath = latestCurrentImage;
                     UpdateDesktop();
                 }
 
@@ -62,7 +70,7 @@ namespace Spotlight_Desktop
                     count = 0;
                 }
 
-                if (RunOnce)
+                if (_RunOnce)
                 {
                     break;
                 }
@@ -71,6 +79,7 @@ namespace Spotlight_Desktop
                 Thread.Sleep(60 * 1000);
                 count++;
             }
+
         }
     }
 }
